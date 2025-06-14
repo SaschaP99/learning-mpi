@@ -7,10 +7,10 @@
 
 int main(int argc, char **argv ) {
 	
-	char debug_buffer[100];
-	char tmp_str[10];
+	char debug_buffer[1024];
+	char tmp_str[100];
 	
-	int jj, ee, n, rank, size, rem;
+	int jj, ee, n, rank, size, rem, proc_down, proc_up;
 	int* matrix;
 	int el_each;
 	int* my_space;
@@ -94,9 +94,26 @@ int main(int argc, char **argv ) {
 		MPI_Recv(CONTENT, MY_NUM_OF_ROWS*n, MPI_INT, 0, 10, MPI_COMM_WORLD, &status);
 	}
 	
+	//MPI_Send(CONTENT,n,MPI_INT,(rank-1)%size,10,MPI_COMM_WORLD);
+	//MPI_Recv(EDGE2,n,MPI_INT,(rank+1)%size,10,MPI_COMM_WORLD,&status);
+	
+	proc_down = rank + 1;
+	proc_up = rank - 1;
+	if (rank == size-1){
+		proc_down = 0;
+	}
+	if (rank == 0){
+		proc_up = size-1;
+	}
+	
+	//printf("[rank %d] rank down = %d, rank up = %d\n", rank,proc_down,proc_up);
+	
+	MPI_Sendrecv(&CONTENT[(MY_NUM_OF_ROWS-1)*n],n,MPI_INT,proc_down,10,EDGE1,n,MPI_INT,proc_up,10,MPI_COMM_WORLD,&status);
+	MPI_Sendrecv(CONTENT,n,MPI_INT,proc_up,10,EDGE2,n,MPI_INT,proc_down,10,MPI_COMM_WORLD,&status);
+	
 	strcpy(debug_buffer," ");
-	for (ee = 0; ee < MY_NUM_OF_ROWS*n; ee++){
-		sprintf(tmp_str, "%d, ",CONTENT[ee] );
+	for (ee = 0; ee < (MY_NUM_OF_ROWS+NUM_EDGES)*n; ee++){
+		sprintf(tmp_str, "%d, ",my_space[ee]);
 		strcat(debug_buffer,tmp_str);
 	}
 	printf("[rank %d] my matrix is %s \n", rank,debug_buffer);
